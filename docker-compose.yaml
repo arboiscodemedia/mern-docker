@@ -1,0 +1,60 @@
+version: "3.8"
+services:
+  mongo:
+    image: mongo:latest
+    container_name: mongodb_server_container    
+    environment: 
+      MONGO_INITDB_ROOT_USERNAME: mernadmin
+      MONGO_INITDB_ROOT_PASSWORD: mernpassword  
+    ports:
+      - "27017:27017"
+    networks:
+      - linknet
+    volumes:
+      - mongo-data:/data/db 
+      - ./mongo-entrypoint/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    restart: unless-stopped
+
+  server:
+    build: ./api
+    container_name: server_container
+    environment: 
+      DB_USER: mernadmin
+      DB_PASSWORD: mernpassword
+      DB_HOST: mongo
+      DB_PORT: 27017
+      DB_NAME: mydb
+      SERVER_PORT: 4000
+    ports:
+      - "4000:4000"
+    volumes:  
+      - ./api:/server
+      - /server/node_modules
+    depends_on:
+      - mongo
+    networks: 
+      - linknet  
+    restart: on-failure
+
+  client:
+    build: ./app
+    container_name: client_container
+    stdin_open: true
+    tty: true
+    ports:
+      - "3000:3000"    
+    volumes:  
+      - ./app:/client
+      - /client/node_modules  
+    depends_on:
+      - mongo
+      - server
+    networks: 
+      - linknet  
+    restart: on-failure
+
+networks: 
+  linknet:
+
+volumes:
+  mongo-data: 
